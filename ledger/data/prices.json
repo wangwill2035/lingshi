@@ -1,0 +1,208 @@
+{
+  "updated_at": "2026-11-01 06:50",
+  "source": "用户提供的「执行销售单价」截图（2026-10-31，60–120 级 16 款）+ 文字补充 140 级四款报价（2026-10-31 14:17）",
+  "unit_note": "单位：万梦幻币（1万梦幻币 = 10,000 两）；数值按用户价格表原样记录，未做四舍五入",
+  "server": "白云山（广东4区）",
+  "rate": {
+    "quote": "¥224.01 / 3000万梦幻币（1元 ≈ 13.39万）",
+    "rmb_per_wan": 0.0747,
+    "collected_at": "2026-10-31 10:40",
+    "source": "阿鱼工具箱公开金价 mh.zyungame.com/prices.html",
+    "note": "第三方市场快照，非网易官方汇率；各服不同价，每日波动"
+  },
+  "items": [
+    {
+      "code": "ring_60",
+      "type": "戒指",
+      "level": 60,
+      "name": "枫华戒",
+      "price": 320,
+      "status": "在售"
+    },
+    {
+      "code": "ring_80",
+      "type": "戒指",
+      "level": 80,
+      "name": "芙蓉戒",
+      "price": 770,
+      "status": "在售"
+    },
+    {
+      "code": "ring_100",
+      "type": "戒指",
+      "level": 100,
+      "name": "金麟绕",
+      "price": 1430,
+      "status": "在售"
+    },
+    {
+      "code": "ring_120",
+      "type": "戒指",
+      "level": 120,
+      "name": "悦碧水",
+      "price": 2450,
+      "status": "在售"
+    },
+    {
+      "code": "ring_140",
+      "type": "戒指",
+      "level": 140,
+      "name": "九曜光华",
+      "price": 3300,
+      "status": "在售"
+    },
+    {
+      "code": "ring_160",
+      "type": "戒指",
+      "level": 160,
+      "name": "太虚渺云",
+      "price": null,
+      "status": "未报价"
+    },
+    {
+      "code": "ear_60",
+      "type": "耳饰",
+      "level": 60,
+      "name": "翠叶环",
+      "price": 320,
+      "status": "在售"
+    },
+    {
+      "code": "ear_80",
+      "type": "耳饰",
+      "level": 80,
+      "name": "明月珰",
+      "price": 740,
+      "status": "在售"
+    },
+    {
+      "code": "ear_100",
+      "type": "耳饰",
+      "level": 100,
+      "name": "玉蝶翩",
+      "price": 1400,
+      "status": "在售"
+    },
+    {
+      "code": "ear_120",
+      "type": "耳饰",
+      "level": 120,
+      "name": "点星芒",
+      "price": 2340,
+      "status": "在售"
+    },
+    {
+      "code": "ear_140",
+      "type": "耳饰",
+      "level": 140,
+      "name": "凤羽流苏",
+      "price": 2800,
+      "status": "在售"
+    },
+    {
+      "code": "ear_160",
+      "type": "耳饰",
+      "level": 160,
+      "name": "焰云霞珠",
+      "price": null,
+      "status": "未报价"
+    },
+    {
+      "code": "brace_60",
+      "type": "手镯",
+      "level": 60,
+      "name": "香木镯",
+      "price": 170,
+      "status": "在售"
+    },
+    {
+      "code": "brace_80",
+      "type": "手镯",
+      "level": 80,
+      "name": "翡玉镯",
+      "price": 395,
+      "status": "在售"
+    },
+    {
+      "code": "brace_100",
+      "type": "手镯",
+      "level": 100,
+      "name": "墨影扣",
+      "price": 550,
+      "status": "在售"
+    },
+    {
+      "code": "brace_120",
+      "type": "手镯",
+      "level": 120,
+      "name": "花映月",
+      "price": 945,
+      "status": "在售"
+    },
+    {
+      "code": "brace_140",
+      "type": "手镯",
+      "level": 140,
+      "name": "金水菩提",
+      "price": 1300,
+      "status": "在售"
+    },
+    {
+      "code": "brace_160",
+      "type": "手镯",
+      "level": 160,
+      "name": "浮雪幻音",
+      "price": null,
+      "status": "未报价"
+    },
+    {
+      "code": "pend_60",
+      "type": "佩饰",
+      "level": 60,
+      "name": "芝兰佩",
+      "price": 170,
+      "status": "在售"
+    },
+    {
+      "code": "pend_80",
+      "type": "佩饰",
+      "level": 80,
+      "name": "逸云佩",
+      "price": 395,
+      "status": "在售"
+    },
+    {
+      "code": "pend_100",
+      "type": "佩饰",
+      "level": 100,
+      "name": "莲音玦",
+      "price": 550,
+      "status": "在售"
+    },
+    {
+      "code": "pend_120",
+      "type": "佩饰",
+      "level": 120,
+      "name": "相思染",
+      "price": 985,
+      "status": "在售"
+    },
+    {
+      "code": "pend_140",
+      "type": "佩饰",
+      "level": 140,
+      "name": "玄龙苍珀",
+      "price": 1400,
+      "status": "在售"
+    },
+    {
+      "code": "pend_160",
+      "type": "佩饰",
+      "level": 160,
+      "name": "碧海青天",
+      "price": null,
+      "status": "未报价"
+    }
+  ],
+  "count_log": []
+}

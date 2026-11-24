@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>灵饰经营工作台</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: "Microsoft YaHei UI", sans-serif; background: #f5f6fa; padding: 16px; color: #2c3e50; max-width: 860px; margin: 0 auto; }
+h1 { font-size: 18px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+.cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 12px; }
+.card { background: #fff; border-radius: 6px; padding: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.card .label { font-size: 12px; color: #7f8c8d; margin-bottom: 4px; }
+.card .value { font-size: 18px; font-weight: bold; color: #2c3e50; }
+.card .sub { font-size: 11px; color: #95a5a6; margin-top: 2px; }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.panel { background: #fff; border-radius: 6px; padding: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.panel h3 { font-size: 13px; margin-bottom: 8px; }
+input { width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; margin-bottom: 6px; box-sizing: border-box; }
+button { background: #2f73d9; color: #fff; border: none; padding: 7px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; }
+button:hover { background: #2560b8; }
+button.gray { background: #95a5a6; }
+button.danger { background: #e74c3c; }
+.msg { font-size: 12px; margin-top: 6px; padding: 6px; border-radius: 3px; display: none; }
+.msg.ok { background: #e8f5e9; color: #2e7d32; display: block; }
+.msg.err { background: #ffebee; color: #c62828; display: block; }
+.matrices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th, td { border: 1px solid #ecf0f1; padding: 5px; text-align: center; }
+th { background: #f8f9fa; font-weight: 600; }
+.zero { color: #e74c3c; font-weight: bold; }
+.refresh { font-size: 11px; color: #95a5a6; text-align: right; margin-bottom: 6px; }
+
+/* 弹窗 */
+.modal-mask { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 100; }
+.modal { background: #fff; border-radius: 8px; padding: 20px; width: 620px; max-width: 95vw; max-height: 90vh; overflow-y: auto; }
+.modal h2 { font-size: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; }
+.modal table input { width: 70px; text-align: center; margin: 0; padding: 3px; }
+.editing input { background: #fff3cd; border-color: #ffc107; }
+.price-changed { background: #fff3cd !important; }
+.modal-btns { margin-top: 12px; display: flex; gap: 8px; justify-content: flex-end; }
+.pwd-box { text-align: center; padding: 20px; }
+.pwd-box input { width: 200px; margin: 10px auto; display: block; text-align: center; }
+</style>
+</head>
+<body>
+<h1 style="display:flex;justify-content:space-between;align-items:center;">
+  <span>灵饰经营工作台</span>
+  <span style="display:flex;gap:8px;">
+    <button onclick="openPriceModal()">价格管理</button>
+    <button onclick="openReportModal()">日报/周报</button>
+    <button onclick="refresh()">手动刷新</button>
+  </span>
+</h1>
+
+<div class="cards" style="grid-template-columns: repeat(4, 1fr);">
+  <div class="card" style="cursor:pointer" onclick="showMatrixModal('在售')"><div class="label">在售总件数</div><div class="value" id="stockQty">-</div><div class="sub" id="stockWan">-</div></div>
+  <div class="card" style="cursor:pointer" onclick="showMatrixModal('库存')"><div class="label">库存总件数</div><div class="value" id="storageQty">-</div><div class="sub" id="storageWan">-</div></div>
+  <div class="card" style="cursor:pointer" onclick="showMatrixModal('销售')"><div class="label">今日已售</div><div class="value" id="saleQty">-</div><div class="sub" id="saleWan">-</div></div>
+  <div class="card" style="cursor:pointer" onclick="showCashModal()"><div class="label">今日已回款</div><div class="value" id="cashWan">-</div><div class="sub">未回款 <span id="balanceWan">-</span> 万</div></div>
+</div>
+
+<div class="actions">
+  <div class="panel">
+    <h3>扫码登记</h3>
+    <input id="qrInput" placeholder="扫入二维码自动入账" autofocus="true" enterkeyhint="go">
+    <div id="qrMsg" class="msg"></div>
+  </div>
+  <div class="panel">
+    <h3>回款登记</h3>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input id="cashDate" type="date" style="width:135px;flex:none;">
+      <input id="cashInput" type="number" placeholder="回款金额（万）" style="flex:1;">
+      <button onclick="doCash()">登记回款</button>
+    </div>
+    <div id="cashMsg" class="msg"></div>
+  </div>
+</div>
+
+<div class="panel" style="margin-bottom:12px;">
+  <h3>今日扫码流水（待处理 + 已入账）</h3>
+  <div id="scanLogList" style="max-height:500px;overflow-y:auto;font-size:13px;">
+    <div style="padding:8px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center;opacity:0.85;">
+      <div><b style="color:#2e7d32">[已入账]</b> 11-16 09:36 中途盘点 共75件<br><small style="color:#666">枫华戒×10+翠叶环×3+香木镯×10+芝兰佩×10+芙蓉戒×5+明月珰×5+翡玉镯×5+逸云佩×5+金麟绕×2+玉蝶翩×6+莲音玦×4+悦碧水×5+点星芒×3+花映月×1+相思染×1</small></div>
+    </div>
+    <div style="padding:8px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center;opacity:0.85;">
+      <div><b style="color:#2e7d32">[已入账]</b> 11-16 09:12 上架 共27件<br><small style="color:#666">枫华戒×3+香木镯×2+芝兰佩×10+明月珰×1+翡玉镯×1+逸云佩×5+玉蝶翩×1+莲音玦×4</small></div>
+    </div>
+  </div>
+</div>
+
+<!-- 矩阵弹窗 -->
+<div class="modal-mask" id="matrixModal" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal">
+    <h2 id="matrixTitle">矩阵明细 <button class="gray" onclick="document.getElementById('matrixModal').style.display='none'">关闭</button></h2>
+    <div id="matrixContent"></div>
+  </div>
+</div>
+
+<!-- 操作结果弹窗 -->
+<div class="modal-mask" id="resultModal">
+  <div class="modal" id="resultModalBody" style="width:680px">
+    <h2><span id="resultTitle">-</span><button class="gray" onclick="closeResultModal()">确定</button></h2>
+    <div id="resultContent" style="font-size:14px;line-height:1.8;"></div>
+  </div>
+</div>
+
+<!-- 通用弹窗 -->
+<div class="modal-mask" id="priceModal">
+  <div class="modal" id="priceModalBody" style="position:relative;">
+  </div>
+  <button onclick="closeAllModal()" style="position:fixed;top:30px;right:30px;z-index:999;font-size:24px;width:40px;height:40px;cursor:pointer;background:#333;color:#fff;border:none;border-radius:50%;">×</button>
+</div>
+
+<script>
+const COST = {
+  "枫华戒":342,"翠叶环":342,"香木镯":157,"芝兰佩":157,
+  "芙蓉戒":762,"明月珰":742,"翡玉镯":387,"逸云佩":387,
+  "金麟绕":1357,"玉蝶翩":1317,"墨影扣":517,"莲音玦":517,
+  "悦碧水":2315,"点星芒":2165,"花映月":845,"相思染":885
+};
+let categories = [];
+let currentPrices = {};
+let currentCosts = {};
+let originalPrices = {};
+let originalCosts = {};
+let editing = false;
+
+let lastData = null;
+let lastDaily = null;
+let lastWeekly = null;
+function showMatrixModal(type) {
+  if (!lastData) return;
+  const title = document.getElementById("matrixTitle");
+  const content = document.getElementById("matrixContent");
+  if (type === "在售") {
+    title.innerHTML = "在售矩阵明细 <button class='gray' onclick='document.getElementById(\"matrixModal\").style.display=\"none\"'>关闭</button>";
+    content.innerHTML = renderMatrixHtml(lastData.stock);
+  } else if (type === "库存") {
+    title.innerHTML = "库存矩阵明细 <button class='gray' onclick='document.getElementById(\"matrixModal\").style.display=\"none\"'>关闭</button>";
+    content.innerHTML = renderMatrixHtml(lastData.storage);
+  } else if (type === "销售") {
+    title.innerHTML = "今日销售明细 <button class='gray' onclick='document.getElementById(\"matrixModal\").style.display=\"none\"'>关闭</button>";
+    content.innerHTML = renderSaleMatrixHtml(lastData.sale_matrix || {});
+  }
+  document.getElementById("matrixModal").style.display = "flex";
+}
+function showCashModal() {
+  if (!lastData) return;
+  const title = document.getElementById("matrixTitle");
+  const content = document.getElementById("matrixContent");
+  title.innerHTML = "今日回款明细 <button class='gray' onclick='document.getElementById(\"matrixModal\").style.display=\"none\"'>关闭</button>";
+  const cashList = lastData.cash_list || [];
+  if (!cashList.length) {
+    content.innerHTML = '<div style="text-align:center;color:#95a5a6;padding:20px">今日暂无回款</div>';
+  } else {
+    let html = '<table style="width:100%;border-collapse:collapse;font-size:14px"><thead><tr style="background:#f8f9fa"><th style="border:1px solid #ddd;padding:8px">时间</th><th style="border:1px solid #ddd;padding:8px">金额(万)</th></tr></thead><tbody>';
+    cashList.forEach(c => {
+      html += `<tr><td style="border:1px solid #ddd;padding:8px;text-align:center">${c.occ_time.slice(11)}</td><td style="border:1px solid #ddd;padding:8px;text-align:center;color:#2f73d9;font-weight:bold">${c.amount}</td></tr>`;
+    });
+    html += `</tbody></table>`;
+    content.innerHTML = html;
+  }
+  document.getElementById("matrixModal").style.display = "flex";
+}
+function renderMatrixHtml(list) {
+  const levels = ["60级","80级","100级","120级"];
+  const parts = ["戒指","耳饰","手镯","佩饰"];
+  let html = `<table style="width:100%;border-collapse:collapse;font-size:14px"><thead><tr style="background:#f8f9fa"><th style="border:1px solid #ddd;padding:8px"></th>`;
+  parts.forEach(p => html += `<th style="border:1px solid #ddd;padding:8px">${p}</th>`);
+  html += `</tr></thead><tbody>`;
+  levels.forEach(lv => {
+    html += `<tr><td style="border:1px solid #ddd;padding:8px;font-weight:bold">${lv}</td>`;
+    parts.forEach(pt => {
+      const item = list.find(x => x.part===pt && x.level===lv);
+      const qty = item ? item.qty : 0;
+      html += `<td style="border:1px solid #ddd;padding:8px;text-align:center;font-size:16px" class="${qty===0?'zero':''}">${qty}</td>`;
+    });
+    html += `</tr>`;
+  });
+  html += `</tbody></table>`;
+  return html;
+}
+function renderSaleMatrixHtml(saleMap) {
+  const levels = ["60级","80级","100级","120级"];
+  const parts = ["戒指","耳饰","手镯","佩饰"];
+  const nameMap = {
+    "60级":{"戒指":"枫华戒","耳饰":"翠叶环","手镯":"香木镯","佩饰":"芝兰佩"},
+    "80级":{"戒指":"芙蓉戒","耳饰":"明月珰","手镯":"翡玉镯","佩饰":"逸云佩"},
+    "100级":{"戒指":"金麟绕","耳饰":"玉蝶翩","手镯":"墨影扣","佩饰":"莲音玦"},
+    "120级":{"戒指":"悦碧水","耳饰":"点星芒","手镯":"花映月","佩饰":"相思染"},
+  };
+  let html = `<table style="width:100%;border-collapse:collapse;font-size:14px"><thead><tr style="background:#f8f9fa"><th style="border:1px solid #ddd;padding:8px"></th>`;
+  parts.forEach(p => html += `<th style="border:1px solid #ddd;padding:8px">${p}</th>`);
+  html += `</tr></thead><tbody>`;
+  levels.forEach(lv => {
+    html += `<tr><td style="border:1px solid #ddd;padding:8px;font-weight:bold">${lv}</td>`;
+    parts.forEach(p => {
+      const nm = nameMap[lv][p];
+      const cell = saleMap[nm] || {qty:0, amt:0};
+      html += `<td style="border:1px solid #ddd;padding:8px;text-align:center">${cell.qty>0?cell.qty+"件<br><small>"+cell.amt+"万</small>":'-'}</td>`;
+    });
+    html += `</tr>`;
+  });
+  html += `</tbody></table>`;
+  return html;
+}
+
+async function refresh() {
+  try {
+    const r = await fetch("/data");
+    const d = await r.json();
+    lastData = d;
+    // 回款日期跟随当前业务日，避免页面跨天挂着残留前一天日期
+    const cashDateEl = document.getElementById("cashDate");
+    if (cashDateEl) cashDateEl.value = (d.today && d.today.date) || cashDateEl.value;
+    currentPrices = d.prices;
+    currentCosts = d.costs;
+    categories = d.categories || [];
+    document.getElementById("saleQty").innerText = d.today.sale_qty + "件";
+    document.getElementById("saleWan").innerText = d.today.sale_wan + "万";
+    document.getElementById("cashWan").innerText = d.today.cash_wan;
+    document.getElementById("balanceWan").innerText = d.today.balance_wan;
+    const stockQty = d.stock.reduce((s,x)=>s+x.qty,0);
+    const stockWan = d.stock.reduce((s,x)=>s+x.qty*(currentPrices[x.name]||0),0);
+    document.getElementById("stockQty").innerText = stockQty + "件";
+    document.getElementById("stockWan").innerText = stockWan.toFixed(0) + "万货值";
+    const storageQty = d.storage.reduce((s,x)=>s+x.qty,0);
+    const storageWan = d.storage.reduce((s,x)=>s+x.qty*(x.unit_cost||0),0);
+    document.getElementById("storageQty").innerText = storageQty + "件";
+    document.getElementById("storageWan").innerText = storageWan.toFixed(0) + "万成本";
+    // 渲染扫码流水：先待处理（后端数据库取），再已入账
+    const logBox = document.getElementById("scanLogList");
+    let logHtml = "";
+    const opMap = {"I":"入库","O":"上架","C":"中途盘点","E":"日结盘点"};
+    // 待处理记录
+    (d.pending||[]).forEach(p => {
+      logHtml += `<div style="padding:8px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center;background:#fff8e1;">
+        <div><b style="color:#f57c00">[待处理]</b> <span style="color:#999;font-size:12px">#${p.date.slice(5).replace(/-/g,'')}-${p.id}</span> ${p.date.slice(5)} ${p.time.slice(0,5)} ${opMap[p.op]||p.op} 共${p.total}件<br><small style="color:#666">${p.detail}</small></div>
+        <div style="display:flex;gap:6px;">
+          <button onclick="commitPending(${p.id})">确认入账</button>
+          <button class="gray" onclick="delPending(${p.id})">撤销</button>
+        </div>
+      </div>`;
+    });
+    // 已入账记录
+    (d.scan_log||[]).forEach(log => {
+      if (log.op.endsWith("_SUMMARY") || log.op.endsWith("DAY_SUMMARY")) {
+        // 汇总条：蓝色背景
+        logHtml += `<div style="padding:8px;margin:4px 0;background:#e3f2fd;border-radius:4px;">
+          <b style="color:#1565c0">📊 <span style="color:#999;font-size:12px">#${log.biz_date.slice(5).replace(/-/g,'')}-${log.id}</span> ${log.detail}</b>
+        </div>`;
+      } else {
+        const canRollback = (log.op === "I" || log.op === "O");
+        logHtml += `<div style="padding:8px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center;opacity:0.85;">
+          <div><b style="color:#2e7d32">[已入账]</b> <span style="color:#999;font-size:12px">#${log.biz_date.slice(5).replace(/-/g,'')}-${log.id}</span> ${log.occ_time.slice(5,16)} ${opMap[log.op]||log.op} 共${log.total_qty}件<br><small style="color:#666">${log.detail}</small></div>
+          ${canRollback ? `<div style="flex:none;margin-left:8px;"><button class="gray" onclick="rollbackScan(${log.id})">撤销</button></div>` : ""}
+        </div>`;
+      }
+    });
+    // 昨日日结汇总卡片（后端动态返回最近一次 E 日结）
+    if (d.yesterday) {
+      const y = d.yesterday;
+      logHtml += `<div style="margin-top:12px;padding:10px;background:#f0f7ff;border-radius:6px;font-size:13px;">
+        <b>昨日（${y.date}）日结汇总</b><br>
+        <span style="color:#666">销售：${y.sale_qty}件 / ${Math.round(y.sale_wan)}万 ｜ 回款：${Math.round(y.cash_wan)}万 ｜ 最终盘点在售：${y.onsale_qty}件</span>
+      </div>`;
+    }
+    if (!logHtml) logHtml = '<div style="color:#95a5a6;text-align:center;padding:20px;">今日暂无扫码记录</div>';
+    logBox.innerHTML = logHtml;
+    document.getElementById("qrInput").focus();
+  } catch(e) { console.error(e); }
+}
+
+// 旧表格渲染函数已废弃，矩阵全部在弹窗中渲染
+
+async function openReportModal() {
+  // 拉日报和周报数据
+  const [dr, wr] = await Promise.all([fetch("/api/report/daily").then(r=>r.json()), fetch("/api/report/weekly").then(r=>r.json())]);
+  lastDaily = dr; lastWeekly = wr;
+  let html = `<h3>当日日报（${dr.date}） <button onclick="exportDailyCSV()" style="margin-left:10px;padding:4px 10px;font-size:12px;cursor:pointer;">导出日报CSV</button></h3>
+  <p>销售：${dr.sale_qty}件 / ${dr.sale_amt.toFixed(0)}万<br>
+  回款：${dr.cash.toFixed(0)}万<br>
+  ${dr.unpaid < 0 ? `多回款：<b style="color:#2e7d32">${Math.abs(dr.unpaid).toFixed(0)}万</b>（点卡/历史预收）` : `未回款：${dr.unpaid.toFixed(0)}万`}<br>
+  毛利润：<b style="color:#d32f2f">${dr.profit_sum.toFixed(0)}万</b>（综合毛利率 ${dr.profit_rate.toFixed(2)}%）</p>
+  <table style="width:100%;font-size:13px;border-collapse:collapse;margin:10px 0;">
+  <tr style="background:#f0f0f0;"><th style="padding:4px;">品类</th><th style="padding:4px;">件数</th><th style="padding:4px;">金额(万)</th><th style="padding:4px;">毛利(万)</th></tr>`;
+  dr.items.forEach(it => {
+    html += `<tr><td style="padding:4px;border-bottom:1px solid #eee;">${it.name} ${it.level}</td><td style="padding:4px;border-bottom:1px solid #eee;text-align:center;">${it.qty}</td><td style="padding:4px;border-bottom:1px solid #eee;text-align:right;">${it.amount.toFixed(0)}</td><td style="padding:4px;border-bottom:1px solid #eee;text-align:right;color:#d32f2f;">${it.profit.toFixed(0)}</td></tr>`;
+  });
+  html += `</table>
+  <hr>
+  <h3>近7天周报（${wr.start} 至今） <button onclick="exportWeeklyCSV()" style="margin-left:10px;padding:4px 10px;font-size:12px;cursor:pointer;">导出周报CSV</button></h3>
+  <p>累计销售：${wr.total_qty}件 / ${wr.total_amt.toFixed(0)}万<br>
+  累计回款：${wr.total_cash.toFixed(0)}万<br>
+  ${wr.total_unpaid < 0 ? `累计多回款：<b style="color:#2e7d32">${Math.abs(wr.total_unpaid).toFixed(0)}万</b>` : `累计未回款：${wr.total_unpaid.toFixed(0)}万`}<br>
+  累计毛利润：<b style="color:#d32f2f">${wr.total_profit.toFixed(0)}万</b>（综合毛利率 ${wr.profit_rate.toFixed(2)}%）</p>
+  <table style="width:100%;font-size:13px;border-collapse:collapse;margin:10px 0;">
+  <tr style="background:#f0f0f0;"><th style="padding:4px;">日期</th><th style="padding:4px;">销售件数</th><th style="padding:4px;">销售金额(万)</th><th style="padding:4px;">毛利(万)</th></tr>`;
+  wr.days.forEach(d => {
+    html += `<tr><td style="padding:4px;border-bottom:1px solid #eee;">${d.date}</td><td style="padding:4px;border-bottom:1px solid #eee;text-align:center;">${d.qty}</td><td style="padding:4px;border-bottom:1px solid #eee;text-align:right;">${d.amt.toFixed(0)}</td><td style="padding:4px;border-bottom:1px solid #eee;text-align:right;color:#d32f2f;">${d.profit.toFixed(0)}</td></tr>`;
+  });
+  html += `</table>`;
+  // 复用价格弹窗容器，直接写内容
+  document.getElementById("priceModalBody").innerHTML = html;
+  document.getElementById("priceModal").style.display = "flex";
+}
+function csvEscapeCell(v) {
+  const s = String(v == null ? "" : v);
+  return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function downloadCSV(filename, rows) {
+  const lines = rows.map(r => r.map(csvEscapeCell).join(",")).join("\r\n");
+  const blob = new Blob(["\uFEFF" + lines], {type: "text/csv;charset=utf-8;"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function exportDailyCSV() {
+  const dr = lastDaily;
+  if (!dr) return;
+  const rows = [["品类","等级","部位","件数","金额(万)","成本(万)","毛利(万)"]];
+  dr.items.forEach(it => rows.push([it.name, it.level, it.part, it.qty,
+    it.amount.toFixed(2), it.cost.toFixed(2), it.profit.toFixed(2)]));
+  rows.push(["合计","","", dr.sale_qty, dr.sale_amt.toFixed(2),
+    dr.cost_sum.toFixed(2), dr.profit_sum.toFixed(2)]);
+  downloadCSV(`日报-${dr.date}.csv`, rows);
+}
+function exportWeeklyCSV() {
+  const wr = lastWeekly;
+  if (!wr) return;
+  const rows = [["日期","销售件数","销售金额(万)","毛利(万)"]];
+  wr.days.forEach(d => rows.push([d.date, d.qty, d.amt.toFixed(2), d.profit.toFixed(2)]));
+  rows.push(["累计", wr.total_qty, wr.total_amt.toFixed(2), wr.total_profit.toFixed(2)]);
+  downloadCSV(`周报-${wr.start}.csv`, rows);
+}
+function closeAllModal() {
+  document.getElementById("priceModal").style.display = "none";
+  editing = false;
+}
+function closeReportModal() {
+  closeAllModal();
+}
+
+function openPriceModal() {
+  // 先把价格管理的HTML容器写回去
+  document.getElementById("priceModalBody").innerHTML = `
+    <h2>价格管理</h2>
+    <div id="priceView">
+      <table id="priceTable" style="width:100%;border-collapse:collapse;font-size:14px;">
+        <thead><tr style="background:#f0f0f0;"><th style="padding:6px;">等级</th><th style="padding:6px;">品类</th><th style="padding:6px;">成本(万)</th><th style="padding:6px;">售价(万)</th><th style="padding:6px;">毛利率</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div style="margin-top:12px;text-align:right"><button onclick="enterEditMode()">调价</button></div>
+    </div>
+  `;
+  document.getElementById("priceModal").style.display = "flex";
+  renderPriceTable();
+}
+function closePriceModal() {
+  document.getElementById("priceModal").style.display = "none";
+  editing = false;
+  renderPriceTable();
+}
+
+function renderPriceTable() {
+  const tbody = document.querySelector("#priceTable tbody");
+  tbody.innerHTML = "";
+  categories.forEach(cat => {
+    const name = cat.name;
+    const cost = currentCosts[name]||0;
+    const price = currentPrices[name]||0;
+    const profit_rate = price>0 ? ((price-cost)/price*100).toFixed(1)+"%" : "-";
+    tbody.innerHTML += `<tr>
+      <td>${cat.level}级</td><td>${name}</td>
+      <td>${editing ? `<input type="number" data-cost="${name}" value="${cost}" step="1">` : cost}</td>
+      <td>${editing ? `<input type="number" data-price="${name}" value="${price}" step="1">` : price}</td>
+      <td>${profit_rate}</td>
+    </tr>`;
+  });
+}
+
+function enterEditMode() {
+  // 密文密码框，输入时显示圆点
+  const pwd = window.prompt("请输入调价密码：");
+  if (pwd === null) return;
+  if (pwd !== "admin") { alert("密码错误"); return; }
+  editing = true;
+  originalPrices = {...currentPrices};
+  originalCosts = {...currentCosts};
+  const body = document.getElementById("priceView");
+  body.innerHTML = `
+    <table id="priceTable">
+      <thead><tr><th>等级</th><th>品类</th><th>成本价(万)</th><th>销售价(万)</th><th>毛利率</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div class="modal-btns">
+      <button class="gray" onclick="cancelEdit()">取消修改</button>
+      <button class="danger" onclick="saveEdit()">保存修改</button>
+    </div>`;
+  renderPriceTable();
+}
+
+function cancelEdit() {
+  if (!confirm("确定取消修改？所有未保存的改动将丢失。")) return;
+  editing = false;
+  currentPrices = {...originalPrices};
+  currentCosts = {...originalCosts};
+  document.getElementById("priceView").innerHTML = `
+    <table id="priceTable">
+      <thead><tr><th>等级</th><th>品类</th><th>成本价(万)</th><th>销售价(万)</th><th>毛利率</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div style="margin-top:12px;text-align:right">
+      <button onclick="enterEditMode()">调价</button>
+    </div>`;
+  renderPriceTable();
+}
+
+async function saveEdit() {
+  if (!confirm("确定保存修改？新价格/成本将从此刻起生效，不回滚历史销售记录。")) return;
+  const priceInputs = document.querySelectorAll("#priceTable input[data-price]");
+  const costInputs = document.querySelectorAll("#priceTable input[data-cost]");
+  const newPrices = {};
+  const newCosts = {};
+  priceInputs.forEach(i => newPrices[i.dataset.price] = parseFloat(i.value));
+  costInputs.forEach(i => newCosts[i.dataset.cost] = parseFloat(i.value));
+  try {
+    const r = await fetch("/api/prices", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({prices:newPrices, costs:newCosts})});
+    const d = await r.json();
+    alert(d.msg);
+    editing = false;
+    currentPrices = d.prices;
+    currentCosts = d.costs;
+    closePriceModal();
+    refresh();
+  } catch(e) { alert("保存失败: "+e); }
+}
+
+let pendingList = [];
+function renderPending() {
+  // 待处理列表已合并到下面的扫码流水面板，此函数仅占位，不操作DOM
+}
+async function delPending(pending_id) {
+  if (!confirm("确定撤销这张待处理单据？")) return;
+  try {
+    await fetch("/api/pending/delete", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({pending_id})});
+    await refresh();
+  } catch(e) { alert("❌ " + e); }
+}
+async function rollbackScan(scan_id) {
+  let p;
+  try {
+    const r = await fetch("/api/rollback/preview", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({scan_id})});
+    const d = await r.json();
+    if (!d.ok) { alert("❌ " + (d.err || JSON.stringify(d))); return; }
+    p = d;
+  } catch(e) { alert("❌ " + e); return; }
+  const mmdd = p.biz_date.slice(5).replace(/-/g, "");
+  const lines = p.items.map(it => {
+    if (p.op === "I") return `  ${it.name}：库存 ${it.stock_before} → ${it.stock_after}`;
+    return `  ${it.name}：库存 ${it.stock_before} → ${it.stock_after}，在售 ${it.onsale_before} → ${it.onsale_after}`;
+  }).join("\n");
+  let msg = `撤销 #${mmdd}-${p.scan_id}（${p.op_name}）\n${p.detail}\n\n撤后变化：\n${lines}`;
+  if (p.has_later) msg += `\n\n⚠️ 该票之后还有 ${p.later_count} 条入账/盘点记录，撤销后后续盘点需重新扫描核对。`;
+  msg += "\n\n确认撤销？系统会先自动备份数据库。";
+  if (!confirm(msg)) return;
+  try {
+    const r = await fetch("/api/rollback", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({scan_id})});
+    const d = await r.json();
+    if (d.ok) {
+      alert("✅ " + d.msg + (d.backup ? "\n备份：" + d.backup : ""));
+      await refresh();
+      document.getElementById("qrInput").focus();
+    } else {
+      alert("❌ " + (d.err || JSON.stringify(d)));
+    }
+  } catch(e) { alert("❌ " + e); }
+}
+async function commitPending(pending_id) {
+  if (!confirm("确认入账这张单据？")) return;
+  try {
+    const r = await fetch("/api/scan/commit", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({pending_id})});
+    const d = await r.json();
+    if (d.ok) {
+      await refresh();
+    } else {
+      alert("❌ " + (d.err || d.error || JSON.stringify(d)));
+    }
+  } catch(e) { alert("❌ " + e); }
+}
+
+document.getElementById("qrInput").addEventListener("keydown", async (e) => {
+  if (e.key !== "Enter") return;
+  const text = e.target.value.trim();
+  if (!text) return;
+  const msg = document.getElementById("qrMsg");
+  try {
+    const r = await fetch("/api/scan/preview", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({text})});
+    const d = await r.json();
+    if (d.ok) {
+      pendingList.push({preview: d.preview});
+      e.target.value = "";
+      await refresh();
+      alert("✅ 已加入待处理队列，请在下方流水里确认入账");
+    } else {
+      alert("❌ 扫码解析失败\n" + (d.err || d.error || JSON.stringify(d)));
+      e.target.select();
+    }
+  } catch(err) {
+    alert("❌ 网络错误: " + err);
+  }
+});
+
+function showResultModal(d) {
+  // 旧结果弹窗已废弃，确认后直接刷新即可
+}
+
+async function doCash() {
+  const amount = parseFloat(document.getElementById("cashInput").value);
+  if (!amount) return;
+  const dateEl = document.getElementById("cashDate");
+  // 日期默认当天；未选时取本地今天
+  let bizDate = dateEl.value;
+  if (!bizDate) {
+    const d = new Date();
+    const pad = n => String(n).padStart(2, "0");
+    bizDate = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+  const msg = document.getElementById("cashMsg");
+  try {
+    const r = await fetch("/api/cash", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({amount, biz_date: bizDate})});
+    const d = await r.json();
+    alert("✅ " + d.msg + "\n" + bizDate + "累计回款：" + d.summary.cash_wan + "万");
+    document.getElementById("cashInput").value = "";
+    msg.className = "msg ok";
+    msg.innerText = "✅ " + d.msg;
+    await refresh();
+    document.getElementById("qrInput").focus();
+  } catch(e) {
+    alert("❌ " + e);
+    msg.className = "msg err";
+    msg.innerText = "❌ " + e;
+  }
+}
+
+// 回款日期控件默认当天（本地日期，避免 toISOString 的 UTC 偏移）
+(function () {
+  const d = new Date();
+  const pad = n => String(n).padStart(2, "0");
+  const today = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const el = document.getElementById("cashDate");
+  if (el && !el.value) el.value = today;
+})();
+
+refresh();
+
+// 窗口获得焦点自动回到扫码输入框
+window.addEventListener("focus", () => {
+  document.getElementById("qrInput").focus();
+});
+// 页面加载完自动聚焦
+window.addEventListener("load", () => {
+  document.getElementById("qrInput").focus();
+});
+</script>
+</body>
+</html>

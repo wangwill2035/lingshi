@@ -1,0 +1,45 @@
+# 数据库与备份
+*.db
+*.db-shm
+*.db-wal
+*.db.bak-*
+*.bak
+*.bak-*
+*.zip
+
+# 编译与打包产物
+*.exe
+*.dll
+*.o
+*.obj
+*.pdb
+*.pyc
+__pycache__/
+build/
+dist/
+toolchain/
+
+# 经营数据（不入公开仓库）
+*.csv
+*.xlsx
+现金巡检记录*
+回款/
+每日盘点/20*/
+ledger/data/stock.json
+ledger/data/storage.json
+ledger/data/today.json
+ledger/data/cash.json
+
+# 飞书缓存与调试截图
+sheets/
+*.png
+*.jpg
+!qrtool/src/背景图片.png
+!qrtool/src/top.png
+!qrtool/src/打印页面样式.png
+
+# 编辑器与系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

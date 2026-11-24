@@ -1,0 +1,35 @@
+#pragma code_page(65001)
+
+#define IDI_APP 100
+
+IDI_APP ICON "app.ico"
+
+1 VERSIONINFO
+FILEVERSION     1,0,0,0
+PRODUCTVERSION  1,0,0,0
+FILEFLAGSMASK   0x3fL
+FILEFLAGS       0x0L
+FILEOS          0x40004L
+FILETYPE        0x1L
+FILESUBTYPE     0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "080404b0"
+        BEGIN
+            VALUE "CompanyName", "个人小工具"
+            VALUE "FileDescription", "入库上架二维码打印工具"
+            VALUE "FileVersion", "1.0.0.0"
+            VALUE "InternalName", "QRPrinter"
+            VALUE "OriginalFilename", "入库上架二维码打印工具.exe"
+            VALUE "ProductName", "入库上架二维码打印工具"
+            VALUE "ProductVersion", "1.0.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0804, 1200
+    END
+END
+
+1 24 "app.manifest"
